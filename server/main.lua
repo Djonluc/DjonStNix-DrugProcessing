@@ -141,6 +141,35 @@ RegisterNetEvent('DjonStNix-DrugProcessing:server:processDrug', function(drugKey
 end)
 
 -- ==============================================================================
+-- HARVESTING VALIDATION & REWARDS
+-- ==============================================================================
+RegisterNetEvent('DjonStNix-DrugProcessing:server:harvestDrug', function(drugKey)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local drug = Config.Drugs[drugKey]
+
+    if not Player or not drug or drug.type ~= "harvest" then return end
+
+    -- SECURITY: PROXIMITY CHECK (Server Side Authority)
+    local coords = GetEntityCoords(GetPlayerPed(src))
+    local dist = #(coords - drug.coords)
+    
+    -- Fields are larger than processing stations, using radius + buffer
+    if dist > (drug.radius + 15.0) then 
+        LogAction(src, "SECURITY_VIOLATION", "Attempted to harvest from distance: " .. dist)
+        return
+    end
+
+    -- ADD REWARDS
+    if drug.rewardItems then
+        for _, reward in pairs(drug.rewardItems) do
+            AddItem(src, reward.item, reward.amount)
+        end
+        LogAction(src, "DRUG_HARVESTED", "Harvested: " .. drugKey)
+    end
+end)
+
+-- ==============================================================================
 -- VALIDATE LAB KEYS
 -- ==============================================================================
 QBCore.Functions.CreateCallback('DjonStNix-DrugProcessing:server:validateKey', function(source, cb, keyItem)

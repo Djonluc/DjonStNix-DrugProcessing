@@ -31,8 +31,15 @@ local function LoadAnimation(dict)
     end
 end
 
+local function LoadModel(model)
+    RequestModel(model)
+    while not HasModelLoaded(model) do
+        Wait(10)
+    end
+end
+
 -- ==============================================================================
--- DRUG PROCESSING CORE
+-- DRUG PROCESSING & HARVESTING CORE
 -- ==============================================================================
 local function StartProcessing(drugKey)
     local drug = Config.Drugs[drugKey]
@@ -64,6 +71,104 @@ local function StartProcessing(drugKey)
         StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
         QBCore.Functions.Notify("Processing canceled.", "error")
         isProcessing = false
+    end
+end
+
+local function HarvestDrug(drugKey, entity)
+    local drug = Config.Drugs[drugKey]
+    if not drug or isProcessing then return end
+
+    isProcessing = true
+    local ped = PlayerPedId()
+
+    -- ANIMATION LOADING
+    if drug.anim then
+        LoadAnimation(drug.anim.dict)
+        TaskPlayAnim(ped, drug.anim.dict, drug.anim.clip, 5.0, 1.0, -1, 16, 0, false, false, false)
+    end
+
+    if lib.progressBar({
+        duration = drug.duration,
+        label = drug.progressBarLabel or drug.label,
+        useWhileDead = false,
+        canCancel = true,
+        disable = {
+            car = true, move = true, combat = true, mouse = false
+        }
+    }) then
+        StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
+        
+        -- DELETING THE HARVESTED ENTITY
+        if entity and DoesEntityExist(entity) then
+            SetEntityAsMissionEntity(entity, false, true)
+            DeleteObject(entity)
+        end
+
+        TriggerServerEvent('DjonStNix-DrugProcessing:server:harvestDrug', drugKey)
+        isProcessing = false
+        DebugLog("Harvesting Cycle Complete: " .. drugKey)
+    else
+        StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
+        QBCore.Functions.Notify("Harvesting canceled.", "error")
+        isProcessing = false
+    end
+end
+
+-- ==============================================================================
+-- HARVESTING SPAWNING LOGIC
+-- ==============================================================================
+local spawnedHarvestables = {}
+
+local function SpawnHarvestables(drugKey)
+    local data = Config.Drugs[drugKey]
+    if not data or data.type ~= "harvest" or not data.model then return end
+
+    -- Cleanup existing
+    if spawnedHarvestables[drugKey] then
+        for _, entity in pairs(spawnedHarvestables[drugKey]) do
+            if DoesEntityExist(entity) then DeleteObject(entity) end
+        end
+    end
+    spawnedHarvestables[drugKey] = {}
+
+    LoadModel(data.model)
+
+    -- Spawn Loop: Create a cluster of harvestable items
+    for i = 1, 15 do
+        local offset = vector3(math.random(-data.radius, data.radius), math.random(-data.radius, data.radius), 0)
+        local spawnPos = data.coords + offset
+        
+        local foundGround, groundZ = GetGroundZFor_3dCoord(spawnPos.x, spawnPos.y, spawnPos.z + 50.0, 0)
+        if foundGround then
+            local obj = CreateObject(data.model, spawnPos.x, spawnPos.y, groundZ, false, false, false)
+            PlaceObjectOnGroundProperly(obj)
+            FreezeEntityPosition(obj, true)
+            table.insert(spawnedHarvestables[drugKey], obj)
+        end
+    end
+    SetModelAsNoLongerNeeded(data.model)
+end
+
+local function InitHarvestingZones()
+    for key, data in pairs(Config.Drugs) do
+        if data.type == "harvest" then
+            lib.zones.sphere({
+                coords = data.coords,
+                radius = data.radius + 10.0,
+                debug = Config.Debug,
+                onEnter = function()
+                    SpawnHarvestables(key)
+                end,
+                onExit = function()
+                    if spawnedHarvestables[key] then
+                        for _, entity in pairs(spawnedHarvestables[key]) do
+                            if DoesEntityExist(entity) then DeleteObject(entity) end
+                        end
+                        spawnedHarvestables[key] = {}
+                    end
+                end
+            })
+        end
     end
 end
 
@@ -104,24 +209,41 @@ end
 -- ==============================================================================
 -- TARGET INITIALIZATION
 -- ==============================================================================
--- Uses qb-target to create interactive zones based on config.
--- ==============================================================================
 local function InitTarget()
-    -- PROCESSING ZONES
+    -- TRACK MODELS TO AVOID MULTIPLE REGISTERING
+    local registeredModels = {}
+
+    -- DRUG SYSTEM (PROCESSING & HARVESTING)
     for key, data in pairs(Config.Drugs) do
-        exports.ox_target:addSphereZone({
-            coords = data.coords,
-            radius = data.radius or 2.0,
-            options = {
-                {
-                    name = "DjonStNix_Process_"..key,
-                    onSelect = function() StartProcessing(key) end,
-                    icon = "fas fa-flask",
-                    label = data.label,
-                    distance = 2.5
+        if data.type == "processing" then
+            exports.ox_target:addSphereZone({
+                coords = data.coords,
+                radius = data.radius or 2.0,
+                options = {
+                    {
+                        name = "DjonStNix_Process_"..key,
+                        onSelect = function() StartProcessing(key) end,
+                        icon = "fas fa-flask",
+                        label = data.label,
+                        distance = 2.5
+                    }
                 }
-            }
-        })
+            })
+        elseif data.type == "harvest" and data.model then
+            -- ADD MODEL-BASED TARGETING
+            if not registeredModels[data.model] then
+                exports.ox_target:addModel(data.model, {
+                    {
+                        name = "DjonStNix_Harvest_"..key,
+                        onSelect = function(args) HarvestDrug(key, args.entity) end,
+                        icon = "fas fa-leaf",
+                        label = data.label,
+                        distance = 2.0
+                    }
+                })
+                registeredModels[data.model] = true
+            end
+        end
     end
 
     -- LAB ENTRANCES
@@ -198,5 +320,6 @@ end)
 CreateThread(function()
     Wait(1000)
     InitTarget()
+    InitHarvestingZones()
     DebugLog("Client Initialized. Core Ready.")
 end)
