@@ -149,23 +149,12 @@ local function SpawnHarvestables(drugKey)
             groundZ = spawnPos.z
         end
 
-        -- CreateObject requires 'true' for 6th parameter (isMission) so the engine doesn't despawn it!
         local obj = CreateObject(hash, spawnPos.x, spawnPos.y, groundZ, false, true, false)
         PlaceObjectOnGroundProperly(obj)
         FreezeEntityPosition(obj, true)
 
-        -- Target directly via LocalEntity for reliability
-        exports.ox_target:addLocalEntity(obj, {
-            {
-                name = "DjonStNix_Harvest_"..drugKey,
-                onSelect = function() HarvestDrug(drugKey, obj) end,
-                icon = "fas fa-leaf",
-                label = data.label,
-                distance = 2.0
-            }
-        })
-
         table.insert(spawnedHarvestables[drugKey], obj)
+        Wait(10)
     end
     SetModelAsNoLongerNeeded(hash)
 end
@@ -242,7 +231,7 @@ local function InitTarget()
     -- TRACK MODELS TO AVOID MULTIPLE REGISTERING
     local registeredModels = {}
 
-    -- DRUG SYSTEM (PROCESSING STATIONS ONLY)
+    -- DRUG SYSTEM (PROCESSING & HARVESTING)
     for key, data in pairs(Config.Drugs) do
         if data.type == "processing" then
             exports.ox_target:addSphereZone({
@@ -258,6 +247,20 @@ local function InitTarget()
                     }
                 }
             })
+        elseif data.type == "harvest" and data.model then
+            -- ADD MODEL-BASED TARGETING
+            if not registeredModels[data.model] then
+                exports.ox_target:addModel(data.model, {
+                    {
+                        name = "DjonStNix_Harvest_"..key,
+                        onSelect = function(args) HarvestDrug(key, args.entity) end,
+                        icon = "fas fa-leaf",
+                        label = data.label,
+                        distance = 2.0
+                    }
+                })
+                registeredModels[data.model] = true
+            end
         end
     end
 
