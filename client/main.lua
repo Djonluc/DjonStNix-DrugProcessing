@@ -46,33 +46,52 @@ local function StartProcessing(drugKey)
     local drug = Config.Drugs[drugKey]
     if not drug or isProcessing then return end
 
-    isProcessing = true
-    local ped = PlayerPedId()
+    QBCore.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:canProcess', function(canProcess, missingItem)
+        if not canProcess then
+            lib.notify({
+                title = 'Missing Items',
+                description = 'You are missing: ' .. (missingItem or 'Unknown'),
+                type = 'error'
+            })
+            return
+        end
 
-    -- ANIMATION LOADING
-    if drug.anim then
-        LoadAnimation(drug.anim.dict)
-        TaskPlayAnim(ped, drug.anim.dict, drug.anim.clip, 5.0, 1.0, -1, 16, 0, false, false, false)
-    end
+        isProcessing = true
+        local ped = PlayerPedId()
 
-    if lib.progressBar({
-        duration = drug.duration,
-        label = drug.progressBarLabel or drug.label,
-        useWhileDead = false,
-        canCancel = true,
-        disable = {
-            car = true, move = true, combat = true, mouse = false
-        }
-    }) then
-        StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
-        TriggerServerEvent('DjonStNix-DrugProcessing:server:processDrug', drugKey)
-        isProcessing = false
-        DebugLog("Processing Cycle Complete: " .. drugKey)
-    else
-        StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
-        QBCore.Functions.Notify("Processing canceled.", "error")
-        isProcessing = false
-    end
+        -- ANIMATION LOADING
+        if drug.anim then
+            LoadAnimation(drug.anim.dict)
+            TaskPlayAnim(ped, drug.anim.dict, drug.anim.clip, 5.0, 1.0, -1, 16, 0, false, false, false)
+        end
+
+        if lib.progressBar({
+            duration = drug.duration,
+            label = drug.progressBarLabel or drug.label,
+            useWhileDead = false,
+            canCancel = true,
+            disable = {
+                car = true, move = true, combat = true, mouse = false
+            }
+        }) then
+            if drug.anim then
+                StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
+            end
+            TriggerServerEvent('DjonStNix-DrugProcessing:server:processDrug', drugKey)
+            isProcessing = false
+            DebugLog("Processing Cycle Complete: " .. drugKey)
+        else
+            if drug.anim then
+                StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
+            end
+            lib.notify({
+                title = 'Cancelled',
+                description = 'Processing cancelled.',
+                type = 'error'
+            })
+            isProcessing = false
+        end
+    end, drugKey)
 end
 
 local function HarvestDrug(drugKey, entity)
@@ -203,11 +222,11 @@ local function TeleportLab(coords)
     DoScreenFadeIn(500)
 end
 
-local function AccessLab(labName, type)
+local function AccessLab(labName, action)
     local lab = Config.LabAccess[labName]
     if not lab then return end
 
-    if type == "enter" then
+    if action == "enter" then
         if Config.KeyRequired then
             QBCore.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:validateKey', function(hasKey)
                 if hasKey then
@@ -230,6 +249,8 @@ end
 local function InitTarget()
     -- TRACK MODELS TO AVOID MULTIPLE REGISTERING
     local registeredModels = {}
+    local processCount = 0
+    local harvestCount = 0
 
     -- DRUG SYSTEM (PROCESSING & HARVESTING)
     for key, data in pairs(Config.Drugs) do
@@ -237,6 +258,7 @@ local function InitTarget()
             exports.ox_target:addSphereZone({
                 coords = data.coords,
                 radius = data.radius or 2.0,
+                debug = Config.Debug,
                 options = {
                     {
                         name = "DjonStNix_Process_"..key,
@@ -247,8 +269,9 @@ local function InitTarget()
                     }
                 }
             })
+            processCount = processCount + 1
+            print("[DjonStNix-DrugProcessing] Registered processing zone: " .. key .. " at " .. tostring(data.coords))
         elseif data.type == "harvest" and data.model then
-            -- ADD MODEL-BASED TARGETING
             if not registeredModels[data.model] then
                 exports.ox_target:addModel(data.model, {
                     {
@@ -260,15 +283,19 @@ local function InitTarget()
                     }
                 })
                 registeredModels[data.model] = true
+                harvestCount = harvestCount + 1
             end
         end
     end
+
+    print("[DjonStNix-DrugProcessing] Registered " .. processCount .. " processing zones, " .. harvestCount .. " harvest models.")
 
     -- LAB ENTRANCES
     for key, data in pairs(Config.LabAccess) do
         exports.ox_target:addSphereZone({
             coords = vector3(data.enter.x, data.enter.y, data.enter.z),
             radius = 1.5,
+            debug = Config.Debug,
             options = {
                 {
                     name = "DjonStNix_LabEnter_"..key,
@@ -283,6 +310,7 @@ local function InitTarget()
         exports.ox_target:addSphereZone({
             coords = vector3(data.exit.x, data.exit.y, data.exit.z),
             radius = 1.5,
+            debug = Config.Debug,
             options = {
                 {
                     name = "DjonStNix_LabExit_"..key,
@@ -294,6 +322,8 @@ local function InitTarget()
             }
         })
     end
+
+    print("[DjonStNix-DrugProcessing] InitTarget complete.")
 end
 
 -- ==============================================================================
@@ -331,6 +361,31 @@ RegisterNetEvent('DjonStNix-Overdose:addDrugUse', function(drugType, amount)
         DebugLog("Warning: Exposure toxicity added: " .. amount)
     end
 end)
+
+-- ==============================================================================
+-- EVENT BRIDGES (target.lua fires these legacy events)
+-- ==============================================================================
+-- Processing events from target.lua box zones → routed to StartProcessing()
+AddEventHandler('DjonStNix-DrugProcessing:processWeed', function() StartProcessing("weed") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessCocaFarm', function() StartProcessing("coke_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessCocaPowder', function() StartProcessing("coke_brick") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessBricks', function() StartProcessing("coke_brick") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessChemicals', function() StartProcessing("meth_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp', function() StartProcessing("meth_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp2', function() StartProcessing("meth_tray") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessProduct', function() StartProcessing("meth_tray") end)
+AddEventHandler('DjonStNix-DrugProcessing:processHeroin', function() StartProcessing("heroin_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessPoppy', function() StartProcessing("heroin_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:processingThiChlo', function() StartProcessing("lsd_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:chemicalmenu', function() StartProcessing("lsd_process") end)
+
+-- Lab access events from target.lua → routed to AccessLab()
+AddEventHandler('DjonStNix-DrugProcessing:EnterLab', function() AccessLab("meth_lab", "enter") end)
+AddEventHandler('DjonStNix-DrugProcessing:ExitLab', function() AccessLab("meth_lab", "exit") end)
+AddEventHandler('DjonStNix-DrugProcessing:EnterCWarehouse', function() AccessLab("coke_lab", "enter") end)
+AddEventHandler('DjonStNix-DrugProcessing:ExitCWarehouse', function() AccessLab("coke_lab", "exit") end)
+AddEventHandler('DjonStNix-DrugProcessing:EnterWWarehouse', function() AccessLab("weed_lab", "enter") end)
+AddEventHandler('DjonStNix-DrugProcessing:ExitWWarehouse', function() AccessLab("weed_lab", "exit") end)
 
 -- ==============================================================================
 -- INITIALIZATION

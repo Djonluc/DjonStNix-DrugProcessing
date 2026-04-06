@@ -62,6 +62,27 @@ local function AddItem(source, itemName, amount)
 end
 
 -- ==============================================================================
+-- VALIDATION CALLBACKS
+-- ==============================================================================
+QBCore.Functions.CreateCallback('DjonStNix-DrugProcessing:server:canProcess', function(source, cb, drugKey)
+    local drug = Config.Drugs[drugKey]
+    if not drug or not drug.requiredItems then 
+        cb(true, nil)
+        return
+    end
+
+    for _, req in pairs(drug.requiredItems) do
+        local count = GetItemCount(source, req.item)
+        if count < req.amount then
+            cb(false, req.amount .. "x " .. (QBCore.Shared.Items[req.item] and QBCore.Shared.Items[req.item].label or req.item))
+            return
+        end
+    end
+
+    cb(true, nil)
+end)
+
+-- ==============================================================================
 -- PROCESS VALIDATION & REWARDS
 -- ==============================================================================
 -- Main event for processing drugs.

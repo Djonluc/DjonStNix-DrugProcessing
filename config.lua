@@ -15,7 +15,7 @@ Config = {}
 -- GENERAL SYSTEM SETTINGS
 -- ==============================================================================
 Config.Locale = "en" -- Language for notifications
-Config.Debug = false -- Print debug logs to console
+Config.Debug = true -- Print debug logs to console (SET TO false FOR PRODUCTION)
 Config.KeyRequired = true -- Requires laboratory keys for access
 Config.KeyItem = "weedkey" -- Default key item for lab access
 Config.NotifyRadius = 5.0 -- Distance to show target/interaction prompts
@@ -61,7 +61,7 @@ Config.Drugs = {
         model = "h4_prop_bush_cocaplant_01",
         coords = vector3(2806.5, 4774.46, 46.98),
         radius = 15.0,
-        rewardItems = { { item = "cokeleaf", amount = 1 } },
+        rewardItems = { { item = "coca_leaf", amount = 1 } },
         duration = 5000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Picking Coca Leaves...",
@@ -73,7 +73,7 @@ Config.Drugs = {
         model = "prop_plant_01b",
         coords = vector3(-2339.15, -54.32, 95.05),
         radius = 15.0,
-        rewardItems = { { item = "poppy", amount = 1 } },
+        rewardItems = { { item = "poppyresin", amount = 1 } },
         duration = 5000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Harvesting Poppies...",
@@ -97,7 +97,7 @@ Config.Drugs = {
         model = "prop_barrel_exp_01b",
         coords = vector3(-1069.25, 4945.57, 212.18),
         radius = 10.0,
-        rewardItems = { { item = "hydrochloricacid", amount = 1 } },
+        rewardItems = { { item = "hydrochloric_acid", amount = 1 } },
         duration = 6000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Siphoning Acid...",
@@ -109,7 +109,7 @@ Config.Drugs = {
         model = "prop_barrel_02b",
         coords = vector3(-3026.89, 3334.91, 10.04),
         radius = 10.0,
-        rewardItems = { { item = "sulfuricacid", amount = 1 } },
+        rewardItems = { { item = "sulfuric_acid", amount = 1 } },
         duration = 6000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Siphoning Acid...",
@@ -121,7 +121,7 @@ Config.Drugs = {
         model = "prop_barrel_01a",
         coords = vector3(-389.35, -1874.85, 20.53),
         radius = 10.0,
-        rewardItems = { { item = "sodiumhydroxide", amount = 1 } },
+        rewardItems = { { item = "sodium_hydroxide", amount = 1 } },
         duration = 6000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Gathering Sodium...",
@@ -133,7 +133,7 @@ Config.Drugs = {
         model = "prop_barrel_exp_01a",
         coords = vector3(-679.59, 5800.46, 17.33),
         radius = 10.0,
-        rewardItems = { { item = "thionylchloride", amount = 1 } },
+        rewardItems = { { item = "thionyl_chloride", amount = 1 } },
         duration = 6000,
         anim = { dict = "amb@prop_human_bum_bin@idle_a", clip = "idle_a" },
         progressBarLabel = "Siphoning Chemical...",
@@ -172,8 +172,8 @@ Config.Drugs = {
         type = "processing",
         coords = vector3(1087.14, -3195.31, -38.99),
         radius = 5.0,
-        requiredItems = { { item = "cokeleaf", amount = 100 } },
-        rewardItems = { { item = "cocaine", amount = 100 } },
+        requiredItems = { { item = "coca_leaf", amount = 100 } },
+        rewardItems = { { item = "coke", amount = 100 } },
         duration = 15000,
         anim = { dict = "anim@amb@prop_human_atm@left@base", clip = "base" },
         progressBarLabel = "Extracting Cocaine...",
@@ -184,7 +184,7 @@ Config.Drugs = {
         type = "processing",
         coords = vector3(1099.57, -3194.35, -38.99),
         radius = 5.0,
-        requiredItems = { { item = "cocaine", amount = 100 } },
+        requiredItems = { { item = "coke", amount = 100 } },
         rewardItems = { { item = "coke_brick", amount = 1 } },
         duration = 15000,
         anim = { dict = "anim@amb@prop_human_atm@left@base", clip = "base" },
@@ -197,9 +197,9 @@ Config.Drugs = {
         coords = vector3(978.17, -147.98, -48.53),
         radius = 5.0,
         requiredItems = {
-            { item = "sulfuricacid", amount = 10 },
-            { item = "hydrochloricacid", amount = 10 },
-            { item = "sodiumhydroxide", amount = 10 }
+            { item = "sulfuric_acid", amount = 10 },
+            { item = "hydrochloric_acid", amount = 10 },
+            { item = "sodium_hydroxide", amount = 10 }
         },
         rewardItems = { { item = "meth", amount = 100 } }, 
         duration = 10000,
@@ -213,7 +213,7 @@ Config.Drugs = {
         coords = vector3(987.81, -140.43, -49.0),
         radius = 5.0,
         requiredItems = { { item = "meth", amount = 100 } },
-        rewardItems = { { item = "meth_tray", amount = 1 } },
+        rewardItems = { { item = "methtray", amount = 1 } },
         duration = 10000,
         anim = { dict = "anim@amb@prop_human_atm@left@base", clip = "base" },
         progressBarLabel = "Pouring Meth Tray...",
@@ -224,7 +224,7 @@ Config.Drugs = {
         type = "processing",
         coords = vector3(1413.37, -2041.74, 52.0),
         radius = 5.0,
-        requiredItems = { { item = "poppy", amount = 100 } },
+        requiredItems = { { item = "poppyresin", amount = 100 } },
         rewardItems = { { item = "heroin", amount = 100 } },
         duration = 10000,
         anim = { dict = "anim@amb@prop_human_atm@left@base", clip = "base" },
@@ -237,10 +237,10 @@ Config.Drugs = {
         coords = vector3(2503.84, -428.11, 92.99),
         radius = 5.0,
         requiredItems = {
-            { item = "thionylchloride", amount = 50 },
+            { item = "thionyl_chloride", amount = 50 },
             { item = "chemicals", amount = 50 }
         },
-        rewardItems = { { item = "lsdtab", amount = 100 } },
+        rewardItems = { { item = "lsd", amount = 100 } },
         duration = 10000,
         anim = { dict = "anim@amb@prop_human_atm@left@base", clip = "base" },
         progressBarLabel = "Synthesizing LSD...",
