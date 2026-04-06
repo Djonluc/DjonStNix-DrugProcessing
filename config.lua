@@ -46,7 +46,7 @@ Config.Drugs = {
     ["weed_harvest"] = {
         label = "Harvest Cannabis",
         type = "harvest",
-        model = `mw_weed_plant`,
+        model = "mw_weed_plant",
         coords = vector3(2224.64, 5577.03, 53.85),
         radius = 15.0,
         rewardItems = { { item = "cannabis", amount = 1 } },
@@ -58,7 +58,7 @@ Config.Drugs = {
     ["coke_harvest"] = {
         label = "Harvest Coca Leaves",
         type = "harvest",
-        model = `h4_prop_bush_cocaplant_01`,
+        model = "h4_prop_bush_cocaplant_01",
         coords = vector3(2806.5, 4774.46, 46.98),
         radius = 15.0,
         rewardItems = { { item = "cokeleaf", amount = 1 } },
@@ -70,7 +70,7 @@ Config.Drugs = {
     ["heroin_harvest"] = {
         label = "Harvest Poppy",
         type = "harvest",
-        model = `prop_plant_01b`,
+        model = "prop_plant_01b",
         coords = vector3(-2339.15, -54.32, 95.05),
         radius = 15.0,
         rewardItems = { { item = "poppy", amount = 1 } },
@@ -82,7 +82,7 @@ Config.Drugs = {
     ["chemicals_harvest"] = {
         label = "Scavenge Chemicals",
         type = "harvest",
-        model = `mw_chemical_barrel`,
+        model = "mw_chemical_barrel",
         coords = vector3(1264.97, 1803.96, 82.94),
         radius = 15.0,
         rewardItems = { { item = "chemicals", amount = 1 } },
@@ -94,7 +94,7 @@ Config.Drugs = {
     ["hydrochloric_harvest"] = {
         label = "Siphon Hydrochloric Acid",
         type = "harvest",
-        model = `mw_hydro_barrel`,
+        model = "mw_hydro_barrel",
         coords = vector3(-1069.25, 4945.57, 212.18),
         radius = 10.0,
         rewardItems = { { item = "hydrochloricacid", amount = 1 } },
@@ -106,7 +106,7 @@ Config.Drugs = {
     ["sulfuric_harvest"] = {
         label = "Siphon Sulfuric Acid",
         type = "harvest",
-        model = `mw_sulfuric_barrel`,
+        model = "mw_sulfuric_barrel",
         coords = vector3(-3026.89, 3334.91, 10.04),
         radius = 10.0,
         rewardItems = { { item = "sulfuricacid", amount = 1 } },
@@ -118,7 +118,7 @@ Config.Drugs = {
     ["sodium_harvest"] = {
         label = "Gather Sodium Hydroxide",
         type = "harvest",
-        model = `mw_sodium_barrel`,
+        model = "mw_sodium_barrel",
         coords = vector3(-389.35, -1874.85, 20.53),
         radius = 10.0,
         rewardItems = { { item = "sodiumhydroxide", amount = 1 } },
@@ -130,7 +130,7 @@ Config.Drugs = {
     ["thionyl_harvest"] = {
         label = "Siphon Thionyl Chloride",
         type = "harvest",
-        model = `mw_chemical_barrel`,
+        model = "mw_chemical_barrel",
         coords = vector3(-679.59, 5800.46, 17.33),
         radius = 10.0,
         rewardItems = { { item = "thionylchloride", amount = 1 } },
