@@ -152,11 +152,11 @@ RegisterNetEvent('DjonStNix-DrugProcessing:server:harvestDrug', function(drugKey
 
     -- SECURITY: PROXIMITY CHECK (Server Side Authority)
     local coords = GetEntityCoords(GetPlayerPed(src))
-    local dist = #(coords - drug.coords)
+    local dist = #(coords.xy - drug.coords.xy)
     
-    -- Fields are larger than processing stations, using radius + buffer
-    if dist > (drug.radius + 15.0) then 
-        LogAction(src, "SECURITY_VIOLATION", "Attempted to harvest from distance: " .. dist)
+    -- Fields are larger than processing stations, using radius + large buffer to account for float offsets
+    if dist > (drug.radius + 30.0) then 
+        LogAction(src, "SECURITY_VIOLATION", "Attempted to harvest from distance XY: " .. dist)
         return
     end
 
