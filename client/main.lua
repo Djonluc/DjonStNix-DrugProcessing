@@ -137,33 +137,43 @@ local function SpawnHarvestables(drugKey)
 
     -- Spawn Loop: Create a cluster of harvestable items
     for i = 1, 15 do
-        local offset = vector3(math.random(-data.radius, data.radius), math.random(-data.radius, data.radius), 0)
+        -- Proper float randomization for natural spreading
+        local randomX = (math.random() * 2.0 - 1.0) * data.radius
+        local randomY = (math.random() * 2.0 - 1.0) * data.radius
+        local offset = vector3(randomX, randomY, 0)
         local spawnPos = data.coords + offset
         
+        -- Try to find the ground Z. If chunks aren't loaded, fallback to defined Z
         local foundGround, groundZ = GetGroundZFor_3dCoord(spawnPos.x, spawnPos.y, spawnPos.z + 50.0, 0)
-        if foundGround then
-            local obj = CreateObject(hash, spawnPos.x, spawnPos.y, groundZ, false, false, false)
-            PlaceObjectOnGroundProperly(obj)
-            FreezeEntityPosition(obj, true)
-
-            -- Target directly via LocalEntity for reliability
-            exports.ox_target:addLocalEntity(obj, {
-                {
-                    name = "DjonStNix_Harvest_"..drugKey,
-                    onSelect = function() HarvestDrug(drugKey, obj) end,
-                    icon = "fas fa-leaf",
-                    label = data.label,
-                    distance = 2.0
-                }
-            })
-
-            table.insert(spawnedHarvestables[drugKey], obj)
+        if not foundGround then
+            groundZ = spawnPos.z
         end
+
+        -- CreateObject requires 'true' for 6th parameter (isMission) so the engine doesn't despawn it!
+        local obj = CreateObject(hash, spawnPos.x, spawnPos.y, groundZ, false, true, false)
+        PlaceObjectOnGroundProperly(obj)
+        FreezeEntityPosition(obj, true)
+
+        -- Target directly via LocalEntity for reliability
+        exports.ox_target:addLocalEntity(obj, {
+            {
+                name = "DjonStNix_Harvest_"..drugKey,
+                onSelect = function() HarvestDrug(drugKey, obj) end,
+                icon = "fas fa-leaf",
+                label = data.label,
+                distance = 2.0
+            }
+        })
+
+        table.insert(spawnedHarvestables[drugKey], obj)
     end
     SetModelAsNoLongerNeeded(hash)
 end
 
 local function InitHarvestingZones()
+    local ped = PlayerPedId()
+    local pCoords = GetEntityCoords(ped)
+
     for key, data in pairs(Config.Drugs) do
         if data.type == "harvest" then
             lib.zones.sphere({
@@ -182,6 +192,11 @@ local function InitHarvestingZones()
                     end
                 end
             })
+
+            -- Force spawn immediately if we restart the script while standing in the zone
+            if #(pCoords - data.coords) <= (data.radius + 10.0) then
+                SpawnHarvestables(key)
+            end
         end
     end
 end
