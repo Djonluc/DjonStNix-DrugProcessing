@@ -95,8 +95,7 @@ QBCore.Functions.CreateUseableItem("coke_brick", function(source, item)
     BreakDownBulkItem(source, "coke_brick", "cokebaggy", 90, 100, "amb@prop_human_parking_meter@male@idle_a", "idle_a")
 end)
 
--- Meth Tray -> 90-100 Meth Baggies (Wait, does mk-items use meth_baggy? Let's check.)
--- mk-items uses meth_blue, meth_green, etc. But for generic let's use meth_blue or assume 'meth_baggy'
-QBCore.Functions.CreateUseableItem("meth_tray", function(source, item)
-    BreakDownBulkItem(source, "meth_tray", "meth_blue", 90, 100, "amb@prop_human_parking_meter@male@idle_a", "idle_a")
+-- Meth Tray -> 90-100 Meth Baggies
+QBCore.Functions.CreateUseableItem("methtray", function(source, item)
+    BreakDownBulkItem(source, "methtray", "meth", 90, 100, "amb@prop_human_parking_meter@male@idle_a", "idle_a")
 end)

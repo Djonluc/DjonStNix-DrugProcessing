@@ -215,6 +215,20 @@ CreateThread(function()
             }
         }
     })
+
+    exports.ox_target:addBoxZone({
+        coords = vector3(1042.0, -3200.0, -38.17),
+        size = vector3(2.5, 1.2, 1.0),
+        rotation = 0,
+        options = {
+            {
+                name = "weedbrickpress",
+                event = "DjonStNix-DrugProcessing:ProcessWeedBrick",
+                icon = "fas fa-compress-arrows-alt",
+                label = "Press Weed Brick"
+            }
+        }
+    })
     
     exports.ox_target:addBoxZone({
         coords = vector3(1066.51, -3183.44, -38.96),

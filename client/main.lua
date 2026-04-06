@@ -26,9 +26,16 @@ end
 -- ==============================================================================
 local function LoadAnimation(dict)
     RequestAnimDict(dict)
+    local timeout = 0
     while not HasAnimDictLoaded(dict) do
         Wait(10)
+        timeout = timeout + 10
+        if timeout > 5000 then
+            print("[DjonStNix-DrugProcessing] WARNING: Animation dict failed to load: " .. dict)
+            return false
+        end
     end
+    return true
 end
 
 local function LoadModel(model)
@@ -43,10 +50,20 @@ end
 -- DRUG PROCESSING & HARVESTING CORE
 -- ==============================================================================
 local function StartProcessing(drugKey)
+    print("[DjonStNix-DrugProcessing] StartProcessing called with key: " .. tostring(drugKey))
     local drug = Config.Drugs[drugKey]
-    if not drug or isProcessing then return end
+    if not drug then
+        print("[DjonStNix-DrugProcessing] ERROR: Drug key not found in Config.Drugs: " .. tostring(drugKey))
+        return
+    end
+    if isProcessing then
+        print("[DjonStNix-DrugProcessing] ERROR: Already processing, skipping.")
+        return
+    end
 
+    print("[DjonStNix-DrugProcessing] Triggering server callback canProcess...")
     QBCore.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:canProcess', function(canProcess, missingItem)
+        print("[DjonStNix-DrugProcessing] Callback returned: canProcess=" .. tostring(canProcess) .. " missingItem=" .. tostring(missingItem))
         if not canProcess then
             lib.notify({
                 title = 'Missing Items',
@@ -56,15 +73,23 @@ local function StartProcessing(drugKey)
             return
         end
 
+        print("[DjonStNix-DrugProcessing] Callback success, starting processing...")
         isProcessing = true
         local ped = PlayerPedId()
 
-        -- ANIMATION LOADING
+        -- ANIMATION LOADING (supports both dict/clip and scenario)
         if drug.anim then
-            LoadAnimation(drug.anim.dict)
-            TaskPlayAnim(ped, drug.anim.dict, drug.anim.clip, 5.0, 1.0, -1, 16, 0, false, false, false)
+            if drug.anim.scenario then
+                print("[DjonStNix-DrugProcessing] Playing scenario: " .. drug.anim.scenario)
+                TaskStartScenarioInPlace(ped, drug.anim.scenario, 0, true)
+            elseif drug.anim.dict then
+                print("[DjonStNix-DrugProcessing] Loading animation: " .. drug.anim.dict)
+                LoadAnimation(drug.anim.dict)
+                TaskPlayAnim(ped, drug.anim.dict, drug.anim.clip, 5.0, 1.0, -1, 16, 0, false, false, false)
+            end
         end
 
+        print("[DjonStNix-DrugProcessing] Starting progress bar...")
         if lib.progressBar({
             duration = drug.duration,
             label = drug.progressBarLabel or drug.label,
@@ -74,16 +99,12 @@ local function StartProcessing(drugKey)
                 car = true, move = true, combat = true, mouse = false
             }
         }) then
-            if drug.anim then
-                StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
-            end
+            ClearPedTasks(ped)
             TriggerServerEvent('DjonStNix-DrugProcessing:server:processDrug', drugKey)
             isProcessing = false
             DebugLog("Processing Cycle Complete: " .. drugKey)
         else
-            if drug.anim then
-                StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
-            end
+            ClearPedTasks(ped)
             lib.notify({
                 title = 'Cancelled',
                 description = 'Processing cancelled.',
@@ -367,17 +388,54 @@ end)
 -- ==============================================================================
 -- Processing events from target.lua box zones → routed to StartProcessing()
 AddEventHandler('DjonStNix-DrugProcessing:processWeed', function() StartProcessing("weed") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessWeedBrick', function() StartProcessing("weed_brick") end)
 AddEventHandler('DjonStNix-DrugProcessing:ProcessCocaFarm', function() StartProcessing("coke_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:ProcessCocaPowder', function() StartProcessing("coke_brick") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessCocaPowder', function() StartProcessing("coke_powder_cut") end)
 AddEventHandler('DjonStNix-DrugProcessing:ProcessBricks', function() StartProcessing("coke_brick") end)
 AddEventHandler('DjonStNix-DrugProcessing:ProcessChemicals', function() StartProcessing("meth_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp', function() StartProcessing("meth_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp2', function() StartProcessing("meth_tray") end)
-AddEventHandler('DjonStNix-DrugProcessing:ProcessProduct', function() StartProcessing("meth_tray") end)
+AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp', function() StartProcessing("meth_temp_up") end)
+AddEventHandler('DjonStNix-DrugProcessing:ChangeTemp2', function() StartProcessing("meth_temp_down") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessProduct', function() StartProcessing("meth_bag") end)
 AddEventHandler('DjonStNix-DrugProcessing:processHeroin', function() StartProcessing("heroin_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:ProcessPoppy', function() StartProcessing("heroin_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:processingThiChlo', function() StartProcessing("lsd_process") end)
-AddEventHandler('DjonStNix-DrugProcessing:chemicalmenu', function() StartProcessing("lsd_process") end)
+AddEventHandler('DjonStNix-DrugProcessing:ProcessPoppy', function() StartProcessing("heroin_cook") end)
+AddEventHandler('DjonStNix-DrugProcessing:processingThiChlo', function() StartProcessing("thionyl_process") end)
+
+-- Chemical conversion menu (ox_lib context menu)
+AddEventHandler('DjonStNix-DrugProcessing:chemicalmenu', function()
+    lib.registerContext({
+        id = 'djonstnix_chem_menu',
+        title = Lang:t("menu.chemMenuHeader"),
+        options = {
+            {
+                title = Lang:t("items.hydrochloric_acid"),
+                description = Lang:t("menu.chemicals"),
+                onSelect = function() StartProcessing("chem_hydrochloric") end
+            },
+            {
+                title = Lang:t("items.sodium_hydroxide"),
+                description = Lang:t("menu.chemicals"),
+                onSelect = function() StartProcessing("chem_sodium") end
+            },
+            {
+                title = Lang:t("items.sulfuric_acid"),
+                description = Lang:t("menu.chemicals"),
+                onSelect = function() StartProcessing("chem_sulfuric") end
+            },
+            {
+                title = Lang:t("items.lsa"),
+                description = Lang:t("menu.chemicals"),
+                onSelect = function() StartProcessing("chem_lsa") end
+            }
+        }
+    })
+    lib.showContext('djonstnix_chem_menu')
+end)
+
+-- Chemical sub-events (from menu onSelect)
+AddEventHandler('DjonStNix-DrugProcessing:hydrochloric_acid', function() StartProcessing("chem_hydrochloric") end)
+AddEventHandler('DjonStNix-DrugProcessing:sodium_hydroxide', function() StartProcessing("chem_sodium") end)
+AddEventHandler('DjonStNix-DrugProcessing:sulfuric_acid', function() StartProcessing("chem_sulfuric") end)
+AddEventHandler('DjonStNix-DrugProcessing:lsa', function() StartProcessing("chem_lsa") end)
 
 -- Lab access events from target.lua → routed to AccessLab()
 AddEventHandler('DjonStNix-DrugProcessing:EnterLab', function() AccessLab("meth_lab", "enter") end)

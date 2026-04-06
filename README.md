@@ -16,6 +16,47 @@ DjonStNix-DrugProcessing is a highly optimized, modular drug harvesting and mult
 - Full UI integration with progress bars and targeted tasks.
 - DjonStNix-Overdose compliant.
 
+## Drug Processing Workflow Guide
+
+### ❄️ Cocaine Chain (Multi-Stage)
+| Stage | Requirement | Result | Location |
+| :--- | :--- | :--- | :--- |
+| **Harvest** | - | 1x Coca Leaf | Coca Field |
+| **Extraction** | 100x Coca Leaf | 50x Coke (Powder) | Coke Lab (Station 1) |
+| **Refining** | 50x Coke (Powder) | 1x Coke Small Brick | Coke Lab (Station 2) |
+| **Packing** | 2x Coke Small Brick | 1x Big Cocaine Brick | Coke Lab (Station 3) |
+| **Breakdown** | 1x Big Brick + Scale + 100 Bags | 90-100 Coke Baggies | Inventory Use |
+
+### 💎 Meth Chain (High Volume Batch)
+| Stage | Requirement | Result | Location |
+| :--- | :--- | :--- | :--- |
+| **Harvest** | - | 1x Chemicals | Chemical Field |
+| **Chemistry** | 1x Chemicals | 10x Acids / 10x LSA | Chemical Drum |
+| **Mixing** | 25x of each Acid/Base | 1x Liquid Mix | Meth Lab (Station 1) |
+| **Heating** | 1x Liquid Mix | 1x Chemical Vapor | Meth Lab (Station 2) |
+| **Cooling** | 1x Chemical Vapor | 1x Meth Tray | Meth Lab (Station 3) |
+| **Packing** | 1x Meth Tray | 1x Sealed Meth Tray | Meth Lab (Station 4) |
+| **Breakdown** | 1x Tray + Scale + 100 Bags | 90-100 Meth Baggies | Inventory Use |
+
+### 🌿 Weed Chain
+| Stage | Requirement | Result | Location |
+| :--- | :--- | :--- | :--- |
+| **Harvest** | - | 1x Cannabis | Weed Field |
+| **Drying** | 25x Cannabis | 10x Marijuana | Weed Lab (Station 1) |
+| **Packing** | 100x Marijuana | 1x Weed Brick | Weed Lab (Station 2) |
+| **Breakdown** | 1x Brick + Scale + 100 Bags | 90-100 Weed Baggies | Inventory Use |
+
+### 💉 Heroin Chain (2-Stage)
+| Stage | Requirement | Result | Location |
+| :--- | :--- | :--- | :--- |
+| **Harvest** | - | 1x Poppy Resin | Poppy Field |
+| **Cooking** | 25x Poppy Resin | 1x Heroin Paste | Heroin Lab (Cooker) |
+| **Dosing** | 1x Paste + 5 Syringes | 10x Heroin (Doses) | Heroin Lab (Table) |
+
+### 🔬 LSD Chain
+- **Thionyl Chloride**: 10x LSA + 5x Chemicals $\rightarrow$ 1x Thionyl Chloride.
+- **Pure LSD**: 10x LSA + 1x Thionyl Chloride $\rightarrow$ 25x LSD Tabs.
+
 ## Items
 
 ### ox_inventory Format
