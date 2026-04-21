@@ -9,7 +9,7 @@
 -- LICENSE: MIT License (c) 2026 DjonStNix (DjonLuc)
 -- ==============================================================================
 
-local QBCore = exports['qb-core']:GetCoreObject()
+local Core = exports['DjonStNix-Bridge']:GetCore()
 local isProcessing = false
 
 -- ==============================================================================
@@ -62,7 +62,7 @@ local function StartProcessing(drugKey)
     end
 
     print("[DjonStNix-DrugProcessing] Triggering server callback canProcess...")
-    QBCore.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:canProcess', function(canProcess, missingItem)
+    Core.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:canProcess', function(canProcess, missingItem)
         print("[DjonStNix-DrugProcessing] Callback returned: canProcess=" .. tostring(canProcess) .. " missingItem=" .. tostring(missingItem))
         if not canProcess then
             lib.notify({
@@ -100,9 +100,35 @@ local function StartProcessing(drugKey)
             }
         }) then
             ClearPedTasks(ped)
-            TriggerServerEvent('DjonStNix-DrugProcessing:server:processDrug', drugKey)
+
+            -- SKILL CHECK SYSTEM (Interactive Refining)
+            local skillPassed = true -- Default: pass (for stations without skill checks)
+            if Config.SkillCheck.enabled and drug.purityRange then
+                local sc = drug.skillCheck or {}
+                local difficulty = sc.difficulty or Config.SkillCheck.defaultDifficulty
+                local inputs = sc.inputs or Config.SkillCheck.defaultInputs
+
+                DebugLog("Running skill check with difficulty: " .. json.encode(difficulty))
+                skillPassed = lib.skillCheck(difficulty, inputs)
+
+                if skillPassed then
+                    lib.notify({
+                        title = 'Perfect Batch!',
+                        description = 'Your technique was flawless.',
+                        type = 'success'
+                    })
+                else
+                    lib.notify({
+                        title = 'Spoiled Batch!',
+                        description = 'Your hand slipped... quality reduced.',
+                        type = 'error'
+                    })
+                end
+            end
+
+            TriggerServerEvent('DjonStNix-DrugProcessing:server:processDrug', drugKey, skillPassed)
             isProcessing = false
-            DebugLog("Processing Cycle Complete: " .. drugKey)
+            DebugLog("Processing Cycle Complete: " .. drugKey .. " | SkillPassed: " .. tostring(skillPassed))
         else
             ClearPedTasks(ped)
             lib.notify({
@@ -150,7 +176,7 @@ local function HarvestDrug(drugKey, entity)
         DebugLog("Harvesting Cycle Complete: " .. drugKey)
     else
         StopAnimTask(ped, drug.anim.dict, drug.anim.clip, 1.0)
-        QBCore.Functions.Notify("Harvesting canceled.", "error")
+        Core.UI.Notify("Harvesting canceled.", "error")
         isProcessing = false
     end
 end
@@ -249,11 +275,11 @@ local function AccessLab(labName, action)
 
     if action == "enter" then
         if Config.KeyRequired then
-            QBCore.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:validateKey', function(hasKey)
+            Core.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:validateKey', function(hasKey)
                 if hasKey then
                     TeleportLab(lab.exit)
                 else
-                    QBCore.Functions.Notify("You need the " .. lab.key .. " to enter!", "error")
+                    Core.UI.Notify("You need the " .. lab.key .. " to enter!", "error")
                 end
             end, lab.key)
         else
@@ -261,6 +287,21 @@ local function AccessLab(labName, action)
         end
     else
         TeleportLab(lab.enter)
+    end
+
+    -- Show Lab Condition (Phase 4)
+    if Config.Maintenance.enabled then
+        Core.Functions.TriggerCallback('DjonStNix-DrugProcessing:server:getLabCondition', function(condition)
+            local type = 'inform'
+            if condition < Config.Maintenance.failureThreshold then type = 'warning' end
+            if condition < 10 then type = 'error' end
+            
+            lib.notify({
+                title = lab.label .. ' Condition',
+                description = 'Current Status: ' .. condition .. '%',
+                type = type
+            })
+        end, labName)
     end
 end
 
@@ -348,27 +389,52 @@ local function InitTarget()
 end
 
 -- ==============================================================================
--- INVENTORY BREAKDOWN ANIMATION
+-- UNDERCOVER BUST EFFECTS (Phase 5)
 -- ==============================================================================
-RegisterNetEvent('DjonStNix-DrugProcessing:client:PlayBreakdownAnim', function(animDict, animClip)
+RegisterNetEvent('DjonStNix-DrugProcessing:client:UndercoverBust', function(wantedLevel)
     local ped = PlayerPedId()
     
-    LoadAnimation(animDict)
-    TaskPlayAnim(ped, animDict, animClip, 5.0, 1.0, -1, 16, 0, false, false, false)
-    if lib.progressBar({
-        duration = 4000,
-        label = "Breaking Down Product...",
-        useWhileDead = false,
-        canCancel = true,
-        disable = {
-            car = true, move = true, combat = true, mouse = false
-        }
-    }) then
-        StopAnimTask(ped, animDict, animClip, 1.0)
+    -- Apply wanted level
+    SetPlayerWantedLevel(PlayerId(), wantedLevel or 3, false)
+    SetPlayerWantedLevelNow(PlayerId(), false)
+    
+    -- Camera shake for panic effect
+    ShakeGameplayCam('LARGE_EXPLOSION_SHAKE', 0.5)
+    Wait(2000)
+    StopGameplayCamShaking(true)
+end)
+
     else
         StopAnimTask(ped, animDict, animClip, 1.0)
     end
 end)
+
+-- ==============================================================================
+-- LAB MAINTENANCE INTERACTION (Phase 4)
+-- ==============================================================================
+function PerformMaintenance(labId)
+    local ped = PlayerPedId()
+    local lab = Config.LabAccess[labId]
+    if not lab then return end
+
+    -- Play maintenance animation
+    LoadAnimation("amb@prop_human_parking_meter@male@idle_a")
+    TaskPlayAnim(ped, "amb@prop_human_parking_meter@male@idle_a", "idle_a", 5.0, 1.0, -1, 16, 0, false, false, false)
+
+    if lib.progressBar({
+        duration = 10000,
+        label = "Performing Lab Maintenance...",
+        useWhileDead = false,
+        canCancel = true,
+        disable = { car = true, move = true, combat = true, mouse = false }
+    }) then
+        StopAnimTask(ped, "amb@prop_human_parking_meter@male@idle_a", "idle_a", 1.0)
+        TriggerServerEvent('DjonStNix-DrugProcessing:server:PerformMaintenance', labId)
+    else
+        StopAnimTask(ped, "amb@prop_human_parking_meter@male@idle_a", "idle_a", 1.0)
+        lib.notify({ title = 'Maintenance Cancelled', type = 'error' })
+    end
+end
 
 -- ==============================================================================
 -- UTILITY: EXPOSURE FEEDBACK (UI)
@@ -444,6 +510,7 @@ AddEventHandler('DjonStNix-DrugProcessing:EnterCWarehouse', function() AccessLab
 AddEventHandler('DjonStNix-DrugProcessing:ExitCWarehouse', function() AccessLab("coke_lab", "exit") end)
 AddEventHandler('DjonStNix-DrugProcessing:EnterWWarehouse', function() AccessLab("weed_lab", "enter") end)
 AddEventHandler('DjonStNix-DrugProcessing:ExitWWarehouse', function() AccessLab("weed_lab", "exit") end)
+
 
 -- ==============================================================================
 -- INITIALIZATION

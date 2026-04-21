@@ -1,4 +1,4 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+local Core = exports['DjonStNix-Bridge']:GetCore()
 local spawnedPeds = {}
 
 CreateThread(function()

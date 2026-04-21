@@ -19,24 +19,30 @@ version '1.0.0'
 shared_scripts {
     '@ox_lib/init.lua',
     'config.lua',
-    '@qb-core/shared/locale.lua',
     'locales/en.lua', -- Defaulting to en, can be changed in config
 }
 
 client_scripts {
     'client/main.lua',
-    'client/target.lua'
+    'client/target.lua',
+    'client/dealers.lua',
+    'client/pharmaceuticals.lua'
 }
 
 server_scripts {
     'server/main.lua',
-    'server/breakdown.lua'
+    'server/maintenance.lua',
+    'server/pharmaceuticals.lua',
+    'server/breakdown.lua',
+    'server/reputation.lua',
+    'server/market.lua',
+    'server/selling.lua'
 }
 
 lua54 'yes'
 
 dependencies {
-    'qb-core',
+    'DjonStNix-Bridge',
     'ox_target',
     'ox_lib',
     'DjonStNix-Overdose'
